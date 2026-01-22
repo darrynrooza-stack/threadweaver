@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useContext, useMemo, useState, useEffect } from "react";
 import type {
   Partner,
   Interaction,
@@ -8,7 +8,9 @@ import type {
   ThreadStatus,
   ThreadVisibility,
 } from "@/types/cam";
-import { mockPartners, mockInteractions, mockThreads } from "@/data/mockData";
+import { mockInteractions, mockThreads } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
 
 type PartnerCreateInput = {
   name: string;
@@ -43,12 +45,13 @@ type DataContextValue = {
   partners: Partner[];
   interactions: Interaction[];
   threads: Thread[];
+  loading: boolean;
 
-  addPartner: (input: PartnerCreateInput) => Partner;
+  addPartner: (input: PartnerCreateInput) => Promise<Partner | null>;
   logInteraction: (input: InteractionCreateInput) => Interaction;
   addThread: (input: ThreadCreateInput) => Thread;
 
-  updatePartnerHealth: (partnerId: string, health: PartnerHealth) => void;
+  updatePartnerHealth: (partnerId: string, health: PartnerHealth) => Promise<void>;
 };
 
 const DataContext = createContext<DataContextValue | undefined>(undefined);
@@ -62,26 +65,97 @@ function inferInteractionType(channel: Interaction["channel"]): Interaction["typ
   return "direct";
 }
 
+// Helper function to transform Supabase partner row to Partner type
+function transformSupabasePartner(row: Tables<"partners">): Partner {
+  return {
+    id: row.id,
+    name: row.name,
+    tier: row.tier,
+    health: row.health,
+    lastActivity: row.last_activity ? new Date(row.last_activity) : new Date(),
+    openThreads: row.open_threads ?? 0,
+    revenue: row.revenue ?? 0,
+    segment: row.segment ?? "SMB",
+    accountManager: "You", // Default since we don't store account manager names yet
+  };
+}
+
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [partners, setPartners] = useState<Partner[]>(() => mockPartners.map((p) => ({ ...p })));
+  const [partners, setPartners] = useState<Partner[]>([]);
+  const [loading, setLoading] = useState(true);
   const [interactions, setInteractions] = useState<Interaction[]>(() => mockInteractions.map((i) => ({ ...i })));
   const [threads, setThreads] = useState<Thread[]>(() => mockThreads.map((t) => ({ ...t })));
 
-  const addPartner = (input: PartnerCreateInput) => {
-    const partner: Partner = {
-      id: makeId("partner"),
-      name: input.name.trim(),
-      tier: input.tier,
-      health: input.health,
-      lastActivity: new Date(),
-      openThreads: 0,
-      revenue: Number.isFinite(input.revenue) ? input.revenue : 0,
-      segment: input.segment.trim() || "SMB",
-      accountManager: input.accountManager.trim() || "You",
-    };
+  // Fetch partners from Supabase on mount
+  useEffect(() => {
+    async function fetchPartners() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("partners")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-    setPartners((prev) => [partner, ...prev]);
-    return partner;
+      if (error) {
+        console.error("Error fetching partners:", error);
+        setPartners([]);
+      } else if (data) {
+        setPartners(data.map(transformSupabasePartner));
+      }
+      setLoading(false);
+    }
+
+    fetchPartners();
+
+    // Subscribe to realtime changes
+    const channel = supabase
+      .channel("partners-changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "partners" },
+        (payload) => {
+          if (payload.eventType === "INSERT") {
+            const newPartner = transformSupabasePartner(payload.new as Tables<"partners">);
+            setPartners((prev) => [newPartner, ...prev]);
+          } else if (payload.eventType === "UPDATE") {
+            const updatedPartner = transformSupabasePartner(payload.new as Tables<"partners">);
+            setPartners((prev) =>
+              prev.map((p) => (p.id === updatedPartner.id ? updatedPartner : p))
+            );
+          } else if (payload.eventType === "DELETE") {
+            const deletedId = (payload.old as { id: string }).id;
+            setPartners((prev) => prev.filter((p) => p.id !== deletedId));
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const addPartner = async (input: PartnerCreateInput): Promise<Partner | null> => {
+    const { data, error } = await supabase
+      .from("partners")
+      .insert({
+        name: input.name.trim(),
+        tier: input.tier,
+        health: input.health,
+        revenue: Number.isFinite(input.revenue) ? input.revenue : 0,
+        segment: input.segment.trim() || "SMB",
+        open_threads: 0,
+        last_activity: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error("Error adding partner:", error);
+      return null;
+    }
+
+    // Realtime subscription will add the partner to state
+    return transformSupabasePartner(data);
   };
 
   const logInteraction = (input: InteractionCreateInput) => {
@@ -143,7 +217,18 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     return thread;
   };
 
-  const updatePartnerHealth = (partnerId: string, health: PartnerHealth) => {
+  const updatePartnerHealth = async (partnerId: string, health: PartnerHealth) => {
+    const { error } = await supabase
+      .from("partners")
+      .update({ health })
+      .eq("id", partnerId);
+
+    if (error) {
+      console.error("Error updating partner health:", error);
+      return;
+    }
+
+    // Optimistically update local state (realtime will confirm)
     setPartners((prev) => prev.map((p) => (p.id === partnerId ? { ...p, health } : p)));
   };
 
@@ -152,12 +237,13 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       partners,
       interactions,
       threads,
+      loading,
       addPartner,
       logInteraction,
       addThread,
       updatePartnerHealth,
     }),
-    [partners, interactions, threads]
+    [partners, interactions, threads, loading]
   );
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>;

@@ -1,0 +1,232 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* NMI Internal CAM Intelligence CRM - "Be Solid" Design System */
+
+@import url('https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;900&display=swap');
+
+@layer base {
+  :root {
+    /* NMI Brand Colors - Light, Professional, Operational */
+    --background: 210 33% 98%; /* #F6F9FC */
+    --foreground: 240 50% 4%; /* #0A0A14 */
+
+    --card: 0 0% 100%; /* #FFFFFF */
+    --card-foreground: 240 50% 4%; /* #0A0A14 */
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 50% 4%;
+
+    /* Payments Purple - Primary */
+    --primary: 263 65% 23%; /* #32165D */
+    --primary-foreground: 0 0% 100%;
+
+    /* Gateway Green - Success/Accent */
+    --secondary: 158 62% 62%; /* #5CDDAD */
+    --secondary-foreground: 240 50% 4%;
+
+    --muted: 220 14% 90%; /* Subtle fills #E3DCEF approx */
+    --muted-foreground: 268 63% 13%; /* #1C083B */
+
+    --accent: 240 14% 93%; /* #E3DCEF */
+    --accent-foreground: 240 50% 4%;
+
+    --destructive: 350 75% 72%; /* #FF718C */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 213 22% 84%; /* #CBD4E0 */
+    --input: 213 22% 84%;
+    --ring: 263 65% 23%;
+
+    --radius: 0.5rem;
+
+    /* Status Colors - Restricted to functional use only */
+    --status-healthy: 155 100% 41%; /* #00D37D */
+    --status-healthy-foreground: 0 0% 100%;
+    --status-attention: 41 98% 54%; /* #FDAD15 */
+    --status-attention-foreground: 240 50% 4%;
+    --status-critical: 350 75% 72%; /* #FF718C */
+    --status-critical-foreground: 0 0% 100%;
+    --status-info: 200 100% 56%; /* #21AEFF */
+    --status-info-foreground: 0 0% 100%;
+    --status-neutral: 213 22% 84%;
+    --status-neutral-foreground: 240 50% 4%;
+
+    /* Surface variants */
+    --surface-elevated: 0 0% 100%;
+    --surface-panel: 0 0% 100%;
+    --surface-overlay: 210 33% 98%;
+
+    /* Shadow tokens - subtle, professional */
+    --shadow-sm: 0 1px 2px hsl(213 22% 84% / 0.3);
+    --shadow-md: 0 4px 12px hsl(213 22% 84% / 0.25);
+    --shadow-lg: 0 8px 24px hsl(213 22% 84% / 0.3);
+
+    /* Sidebar - uses primary purple */
+    --sidebar-background: 263 65% 23%; /* Payments Purple */
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 158 62% 62%; /* Gateway Green */
+    --sidebar-primary-foreground: 240 50% 4%;
+    --sidebar-accent: 263 45% 35%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 263 45% 30%;
+    --sidebar-ring: 158 62% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Public Sans', Verdana, system-ui, sans-serif;
+  }
+
+  /* Typography Hierarchy - Public Sans */
+  h1 {
+    @apply text-4xl font-black text-foreground;
+  }
+
+  h2 {
+    @apply text-2xl font-black text-foreground;
+  }
+
+  h3 {
+    @apply text-xl font-black text-foreground;
+  }
+}
+
+@layer components {
+  /* Panel Card - Clean white surfaces */
+  .panel-card {
+    @apply bg-card border border-border rounded-lg;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .panel-elevated {
+    @apply bg-card border border-border rounded-lg;
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Status Badges - Semantic only */
+  .status-badge {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-semibold uppercase tracking-wide;
+  }
+
+  .status-healthy {
+    @apply bg-[hsl(var(--status-healthy)/0.12)] text-[hsl(155_100%_30%)];
+  }
+
+  .status-attention {
+    @apply bg-[hsl(var(--status-attention)/0.12)] text-[hsl(41_80%_35%)];
+  }
+
+  .status-critical {
+    @apply bg-[hsl(var(--status-critical)/0.12)] text-[hsl(350_70%_50%)];
+  }
+
+  .status-info {
+    @apply bg-[hsl(var(--status-info)/0.12)] text-[hsl(200_100%_40%)];
+  }
+
+  .status-neutral {
+    @apply bg-muted text-muted-foreground;
+  }
+
+  /* Navigation Items */
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors;
+    @apply text-sidebar-foreground/80 hover:text-sidebar-foreground hover:bg-sidebar-accent;
+  }
+
+  .nav-item-active {
+    @apply bg-sidebar-accent text-sidebar-foreground;
+  }
+
+  /* Operational Table Styles */
+  .table-row {
+    @apply flex items-center gap-4 px-4 py-3 border-b border-border transition-colors;
+    @apply hover:bg-muted/50 cursor-pointer;
+  }
+
+  .table-header {
+    @apply flex items-center gap-4 px-4 py-2 bg-muted/30 border-b border-border text-xs font-semibold uppercase tracking-wide text-muted-foreground;
+  }
+
+  /* Metric Cards */
+  .metric-card {
+    @apply panel-card rounded-lg p-5;
+  }
+
+  /* Input Fields */
+  .input-field {
+    @apply bg-card border border-border rounded-md px-3 py-2 text-sm;
+    @apply focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary;
+  }
+
+  /* Section Headers - Uppercase micro-labels */
+  .section-label {
+    @apply text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+
+  /* Button Styles - Verb-only actions */
+  .btn-primary {
+    @apply bg-primary text-primary-foreground px-4 py-2 rounded-md text-sm font-semibold;
+    @apply hover:bg-primary/90 transition-colors;
+  }
+
+  .btn-secondary {
+    @apply bg-secondary text-secondary-foreground px-4 py-2 rounded-md text-sm font-semibold;
+    @apply hover:bg-secondary/90 transition-colors;
+  }
+
+  /* Helper Text */
+  .helper-text {
+    @apply text-xs text-muted-foreground;
+  }
+
+  /* Legacy aliases for component compatibility */
+  .glass-card {
+    @apply panel-card;
+  }
+
+  .glass-elevated {
+    @apply panel-elevated;
+  }
+
+  .partner-row {
+    @apply table-row;
+  }
+
+  .thread-card {
+    @apply panel-card rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 3px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground));
+  }
+}

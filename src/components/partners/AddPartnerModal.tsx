@@ -67,7 +67,7 @@ export function AddPartnerModal({ open, onOpenChange }: Props) {
     setSaving(true);
 
     const revenueNum = Number(revenue);
-    const partner = addPartner({
+    const partner = await addPartner({
       name,
       tier,
       health,
@@ -76,13 +76,21 @@ export function AddPartnerModal({ open, onOpenChange }: Props) {
       accountManager,
     });
 
-    toast({
-      title: "Partner added",
-      description: `${partner.name} is now in your portfolio.`,
-    });
+    if (partner) {
+      toast({
+        title: "Partner added",
+        description: `${partner.name} is now in your portfolio.`,
+      });
+      close();
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add partner. Please try again.",
+      });
+    }
 
     setSaving(false);
-    close();
   };
 
   return (
